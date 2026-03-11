@@ -5,13 +5,14 @@ import Button from "../../ui/components/Button";
 import useServices from "../../hooks/useServices";
 import useAppointments from "../../hooks/useAppointments";
 import { clientsApi } from "../../data/apis/clientsApi";
+import useUser from "../../hooks/useUser";
 
 export default function ServicesPage() {
   const { services, createService } = useServices();
   const { createAppointment } = useAppointments();
-
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("");
+  const user = useUser();
 
   async function handleCreate() {
     await createService({
@@ -60,7 +61,9 @@ export default function ServicesPage() {
           onChange={(e) => setDuration(e.target.value)}
         />
 
-        <Button onClick={handleCreate}>Create</Button>
+        {user.role === "admin" && (
+          <Button onClick={handleCreate}>Create</Button>
+        )}
       </div>
       <div className="grid grid-cols-3 gap-6">
         {services.map((service) => (

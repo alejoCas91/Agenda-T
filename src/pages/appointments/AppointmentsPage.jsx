@@ -1,9 +1,10 @@
 import PageHeader from "../../ui/components/PageHeader";
 import useAppointments from "../../hooks/useAppointments";
+import useUser from "../../hooks/useUser";
 
 export default function AppointmentsPage() {
   const { appointments, changeStatus } = useAppointments();
-
+  const user = useUser();
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -23,15 +24,17 @@ export default function AppointmentsPage() {
 
             <p>{new Date(a.date_time).toLocaleString()}</p>
 
-            <div className="flex gap-2">
-              <button onClick={() => changeStatus(a.id, "completed")}>
-                Complete
-              </button>
+            {user.role === "admin" && (
+              <div className="flex gap-2">
+                <button onClick={() => changeStatus(a.id, "completed")}>
+                  Complete
+                </button>
 
-              <button onClick={() => changeStatus(a.id, "cancelled")}>
-                Cancel
-              </button>
-            </div>
+                <button onClick={() => changeStatus(a.id, "cancelled")}>
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
