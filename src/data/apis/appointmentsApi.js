@@ -26,4 +26,16 @@ export const appointmentsApi = {
 
     return data;
   },
+
+  async updateStatus(id, status) {
+    const { data, error } = await supabase
+      .from("appointments")
+      .update({ status })
+      .eq("id", id)
+      .select();
+
+    if (error) throw error;
+
+    return data;
+  },
 };

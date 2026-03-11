@@ -23,5 +23,13 @@ export default function useAppointments() {
     setAppointments((prev) => [...prev, ...data]);
   }
 
-  return { appointments, createAppointment };
+  async function changeStatus(id, status) {
+    await appointmentsApi.updateStatus(id, status);
+
+    setAppointments((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, status } : a)),
+    );
+  }
+
+  return { appointments, createAppointment, changeStatus };
 }
