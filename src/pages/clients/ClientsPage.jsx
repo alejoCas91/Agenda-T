@@ -3,6 +3,8 @@ import PageHeader from "../../ui/components/PageHeader";
 import useClients from "../../hooks/useClients";
 import ConfirmDialog from "../../ui/components/ConfirmDialog";
 
+import { sileo } from "sileo";
+
 export default function ClientsPage() {
   const { clients, createClient, deleteClient } = useClients();
 
@@ -13,26 +15,25 @@ export default function ClientsPage() {
   const [selected, setSelected] = useState(null);
 
   async function handleCreate() {
-    if (!name || !phone) return;
+    try {
+      await createClient({
+        name,
+        phone,
+        user_id: "00000000-0000-0000-0000-000000000000",
+      });
 
-    await createClient({
-      name,
-      phone,
-      user_id: "00000000-0000-0000-0000-000000000000",
-    });
-
-    setName("");
-    setPhone("");
+      sileo.success("Client created");
+    } catch {
+      sileo.error("Error creating client");
+    }
   }
 
-  async function handleDelete(){
+  async function handleDelete() {
+    await deleteClient(selected);
 
-  await deleteClient(selected)
-
-  setOpen(false)
-  setSelected(null)
-
-}
+    setOpen(false);
+    setSelected(null);
+  }
 
   return (
     <div className="flex flex-col gap-8">

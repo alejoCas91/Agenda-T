@@ -1,5 +1,11 @@
 import AppRouter from "./app/router";
-function App() {
-  return <AppRouter />;
+import { Toaster } from "sileo";
+
+export default function App() {
+  return (
+    <>
+      <Toaster position="top-right" />
+      <AppRouter />
+    </>
+  );
 }
-export default App;
