@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { clientsApi } from "../data/apis/clientsApi";
+import { supabase } from "../lib/supabase";
 
 export default function useClients() {
   const [clients, setClients] = useState([]);
@@ -20,6 +21,15 @@ export default function useClients() {
   }
 
   async function deleteClient(id) {
+    const { data } = await supabase
+      .from("appointments")
+      .select("id")
+      .eq("client_id", id);
+
+    if (data.length > 0) {
+      throw new Error("Client has appointments");
+    }
+
     await clientsApi.remove(id);
 
     setClients((prev) => prev.filter((c) => c.id !== id));

@@ -29,7 +29,13 @@ export default function ClientsPage() {
   }
 
   async function handleDelete() {
-    await deleteClient(selected);
+    try {
+      await deleteClient(selected);
+
+      sileo.success("Client deleted");
+    } catch {
+      sileo.error("Cannot delete client with appointments");
+    }
 
     setOpen(false);
     setSelected(null);
