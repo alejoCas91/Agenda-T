@@ -1,14 +1,23 @@
 import { useState } from "react";
 import PageHeader from "../../ui/components/PageHeader";
-import CourseCard from "../../ui/components/CourseCard";
 import Button from "../../ui/components/Button";
+import CourseCard from "../../ui/components/CourseCard";
 import ConfirmDialog from "../../ui/components/ConfirmDialog";
 import useServices from "../../hooks/useServices";
+import useRole from "../../hooks/useRole";
 import { sileo } from "sileo";
 
 export default function ServicesPage() {
-  const { services, createService, deleteService, loading, error } =
-    useServices();
+  const {
+    services,
+    createService,
+    deleteService,
+    approveService,
+    loading,
+    error,
+  } = useServices();
+
+  const role = useRole();
 
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("");
@@ -17,14 +26,16 @@ export default function ServicesPage() {
   const [selected, setSelected] = useState(null);
 
   async function handleCreate() {
-    if (!name || !duration) return;
+    if (!name || !duration) {
+      sileo.error("Missing fields");
+      return;
+    }
 
     try {
       await createService({
         name,
         duration_minutes: Number(duration),
         price_cents: 5000,
-        user_id: "00000000-0000-0000-0000-000000000000",
       });
 
       setName("");
@@ -61,25 +72,29 @@ export default function ServicesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Services"
-        description="Manage available services"
-        action={<Button onClick={handleCreate}>Create</Button>}
+        description="Manage courses/services"
+        action={
+          role === "boss" && <Button onClick={handleCreate}>Create</Button>
+        }
       />
 
-      <div className="flex gap-2">
-        <input
-          className="border rounded-lg px-3 py-2"
-          placeholder="Service name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+      {role === "boss" && (
+        <div className="flex gap-2">
+          <input
+            className="border rounded-lg px-3 py-2"
+            placeholder="Service name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
 
-        <input
-          className="border rounded-lg px-3 py-2"
-          placeholder="Duration"
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-        />
-      </div>
+          <input
+            className="border rounded-lg px-3 py-2"
+            placeholder="Duration"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+          />
+        </div>
+      )}
 
       {services.length === 0 && (
         <div className="text-gray-500">No services yet</div>
@@ -94,6 +109,11 @@ export default function ServicesPage() {
               setSelected(service.id);
               setOpen(true);
             }}
+            onApprove={() => {
+              approveService(service.id);
+              sileo.success("Service approved");
+            }}
+            showApprove={role === "admin" && service.status === "pending"}
           />
         ))}
       </div>

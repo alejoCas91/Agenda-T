@@ -9,7 +9,7 @@ export const authApi = {
 
     if (error) throw error;
 
-    return data;
+    return data.user;
   },
 
   async register(email, password) {
@@ -20,7 +20,7 @@ export const authApi = {
 
     if (error) throw error;
 
-    return data;
+    return data.user;
   },
 
   async logout() {

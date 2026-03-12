@@ -23,7 +23,14 @@ export default function useServices() {
   }, []);
 
   async function createService(service) {
-    const data = await servicesApi.create(service);
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+
+    const data = await servicesApi.create({
+      ...service,
+      boss_id: user.id,
+      status: "pending",
+    });
 
     setServices((prev) => [...prev, ...data]);
   }
@@ -43,10 +50,21 @@ export default function useServices() {
     setServices((prev) => prev.filter((s) => s.id !== id));
   }
 
+  async function approveService(id) {
+    const { data } = await supabase
+      .from("services")
+      .update({ status: "approved" })
+      .eq("id", id)
+      .select();
+
+    setServices((prev) => prev.map((s) => (s.id === id ? data[0] : s)));
+  }
+
   return {
     services,
     createService,
     deleteService,
+    approveService,
     loading,
     error,
   };
