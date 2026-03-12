@@ -1,27 +1,25 @@
+import { supabase } from "../../lib/supabase";
+import { useNavigate } from "react-router-dom";
+
 export default function Topbar() {
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+
+    navigate("/login");
+  }
+
   return (
-    <div
-      className="
-      h-16
-      bg-white
-      border-b
-      flex
-      items-center
-      justify-between
-      px-6
-    "
-    >
-      <h1 className="font-semibold text-gray-700">asd</h1>
-      <div className="flex items-center gap-4">
-        <div
-          className="
-          w-9
-          h-9
-          rounded-full
-          bg-gray-200
-        "
-        />
-      </div>
+    <div className="flex justify-between items-center p-4 border-b">
+      <h1 className="font-semibold">AgendaT</h1>
+
+      <button
+        onClick={handleLogout}
+        className="px-4 py-2 bg-black text-white rounded-lg"
+      >
+        Logout
+      </button>
     </div>
   );
 }

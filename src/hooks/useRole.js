@@ -3,26 +3,30 @@ import { supabase } from "../lib/supabase";
 
 export default function useRole() {
   const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function getRole() {
-      const { data } = await supabase.auth.getUser();
+    async function fetchRole() {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
 
-      const user = data.user;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-      if (!user) return;
-
-      const { data: profile } = await supabase
+      const { data } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .single();
 
-      setRole(profile?.role);
+      setRole(data?.role || "client");
+      setLoading(false);
     }
 
-    getRole();
+    fetchRole();
   }, []);
 
-  return role;
+  return { role, loading };
 }

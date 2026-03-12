@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { authApi } from "../../data/apis/authApi";
 import { supabase } from "../../lib/supabase";
 import { sileo } from "sileo";
 
@@ -16,38 +15,80 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleRegister() {
+    if (!name || !phone || !email || !password) {
+      sileo.error({
+        title: "Missing fields",
+        description: "All fields are required",
+      });
+      return;
+    }
+
     if (!validatePassword(password)) {
-      sileo.error(
-        "Password must contain uppercase, number and special character",
-      );
+      sileo.error({
+        title: "Weak password",
+        description:
+          "Password must contain uppercase, number and special character",
+      });
       return;
     }
 
     try {
-      const user = await authApi.register(email, password);
+      setLoading(true);
 
-      await supabase.from("profiles").insert({
+      // crear usuario en auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      const user = data.user;
+
+      if (!user) {
+        throw new Error("User creation failed");
+      }
+
+      // crear perfil
+      const { error: profileError } = await supabase.from("profiles").insert({
         id: user.id,
         email: email,
         role: "client",
       });
 
-      await supabase.from("clients").insert({
+      if (profileError) throw profileError;
+
+      // crear cliente
+      const { error: clientError } = await supabase.from("clients").insert({
         name,
         phone,
         email,
         user_id: user.id,
       });
 
-      sileo.success("Account created");
+      if (clientError) throw clientError;
+
+      sileo.success({
+        title: "Account created",
+        description: "You can now log in",
+      });
 
       navigate("/login");
     } catch (err) {
-      console.error(err);
+      console.error("REGISTER ERROR:", err);
 
-      sileo.error("Error creating account");
+      const message =
+        err?.error_description || err?.message || "Unexpected error";
+
+      sileo.error({
+        title: "Registration failed",
+        description: message,
+      });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -85,16 +126,21 @@ export default function RegisterPage() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
+        <p className="text-xs text-gray-500">
+          Password must contain uppercase, number and special character
+        </p>
+
         <button
-          className="bg-black text-white py-2 rounded-lg"
           onClick={handleRegister}
+          disabled={loading}
+          className="bg-black text-white py-2 rounded-lg disabled:opacity-50"
         >
-          Register
+          {loading ? "Creating..." : "Register"}
         </button>
 
         <p className="text-sm text-center">
           Already have an account?{" "}
-          <Link className="text-blue-600 font-medium" to="/login">
+          <Link to="/login" className="text-blue-600 font-medium">
             Login
           </Link>
         </p>

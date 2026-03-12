@@ -1,19 +1,23 @@
 import useRole from "../../hooks/useRole";
 
-export default function DashboardPage() {
-  const role = useRole();
+import AdminDashboard from "./AdminDashboard";
+import BossDashboard from "./BossDashboard";
+import ClientDashboard from "./ClientDashboard";
 
-  if (!role) {
-    return <div className="p-6">Loading dashboard...</div>;
+export default function DashboardPage() {
+  const { role, loading } = useRole();
+
+  if (loading) {
+    return <div>Loading...</div>;
   }
 
   if (role === "admin") {
-    return <div className="p-6">Admin Dashboard</div>;
+    return <AdminDashboard />;
   }
 
   if (role === "boss") {
-    return <div className="p-6">Boss Dashboard</div>;
+    return <BossDashboard />;
   }
 
-  return <div className="p-6">Client Dashboard</div>;
+  return <ClientDashboard />;
 }
