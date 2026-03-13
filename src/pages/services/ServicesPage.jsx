@@ -1,152 +1,184 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "../../lib/supabase";
 
-import PageHeader from "../../ui/components/PageHeader";
-import Button from "../../ui/components/Button";
 import CourseCard from "../../ui/components/CourseCard";
+import Button from "../../ui/components/Button";
+import PageHeader from "../../ui/components/PageHeader";
 
-import useServices from "../../hooks/useServices";
 import useRole from "../../hooks/useRole";
 
 import { sileo } from "sileo";
 
 export default function ServicesPage() {
-  const { services, createService, deleteService, approveService, loading } =
-    useServices();
-
   const { role } = useRole();
+
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
 
-  async function handleCreate() {
-    if (!name || !duration) {
-      sileo.error({
-        title: "Missing fields",
-        description: "Name and duration are required",
-      });
+  useEffect(() => {
+    async function loadServices() {
+      let query = supabase.from("services").select("*");
 
-      return;
+      if (role === "client") {
+        query = query.eq("status", "approved");
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        sileo.error({
+          title: "Error loading courses",
+        });
+
+        return;
+      }
+
+      setServices(data || []);
+      setLoading(false);
     }
 
+    loadServices();
+  }, [role]);
+
+  async function handleCreate() {
     try {
-      await createService({
-        name,
-        duration_minutes: Number(duration),
-        price_cents: 5000,
-      });
+      const { data: userData } = await supabase.auth.getUser();
+
+      const user = userData.user;
+
+      const { data, error } = await supabase
+        .from("services")
+        .insert({
+          name,
+          duration_minutes: Number(duration),
+          price_cents: Number(price),
+          description,
+          user_id: user.id,
+          status: "pending",
+        })
+        .select();
+
+      if (error) throw error;
+
+      setServices((prev) => [...prev, data[0]]);
 
       setName("");
       setDuration("");
+      setPrice("");
+      setDescription("");
 
       sileo.success({
         title: "Course created",
         description: "Waiting for admin approval",
       });
-    } catch (err) {
-      const message = err?.message || "Unexpected error";
-
-      sileo.error({
-        title: "Create failed",
-        description: message,
-      });
-    }
-  }
-
-  async function handleDelete(id) {
-    try {
-      await deleteService(id);
-
-      sileo.success({
-        title: "Course deleted",
-        description: "Service removed",
-      });
     } catch {
       sileo.error({
-        title: "Delete failed",
-        description: "Service has appointments",
+        title: "Failed to create course",
       });
     }
   }
 
   async function handleApprove(id) {
     try {
-      await approveService(id);
+      const { error } = await supabase
+        .from("services")
+        .update({
+          status: "approved",
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setServices((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, status: "approved" } : s)),
+      );
 
       sileo.success({
         title: "Course approved",
-        description: "Clients can now see this course",
       });
     } catch {
       sileo.error({
-        title: "Approve failed",
-        description: "Unexpected error",
+        title: "Approval failed",
+      });
+    }
+  }
+
+  async function handleDelete(id) {
+    try {
+      await supabase.from("services").delete().eq("id", id);
+
+      setServices((prev) => prev.filter((s) => s.id !== id));
+
+      sileo.success({
+        title: "Course deleted",
+      });
+    } catch {
+      sileo.error({
+        title: "Delete failed",
       });
     }
   }
 
   if (loading) {
-    return <div className="p-6">Loading services...</div>;
+    return <div className="p-6">Loading courses...</div>;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Services"
-        description="Manage courses and services"
-        action={
-          role === "boss" && (
-            <Button onClick={handleCreate}>Create Course</Button>
-          )
-        }
-      />
+      <PageHeader title="Courses" description="Manage available courses" />
 
       {role === "boss" && (
-        <div className="flex gap-2">
+        <div className="border rounded-xl p-4 flex flex-col gap-3 max-w-md">
+          <h2 className="font-semibold">Create Course</h2>
+
           <input
-            className="border rounded-lg px-3 py-2"
             placeholder="Course name"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            className="border rounded px-3 py-2"
           />
 
           <input
-            className="border rounded-lg px-3 py-2"
             placeholder="Duration (minutes)"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
+            className="border rounded px-3 py-2"
           />
-        </div>
-      )}
 
-      {services.length === 0 && (
-        <div className="text-gray-500">No courses available</div>
+          <input
+            placeholder="Price (cents)"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="border rounded px-3 py-2"
+          />
+
+          <textarea
+            placeholder="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="border rounded px-3 py-2"
+          />
+
+          <Button onClick={handleCreate}>Create Course</Button>
+        </div>
       )}
 
       <div className="grid grid-cols-3 gap-6">
         {services.map((service) => (
           <div key={service.id} className="flex flex-col gap-2">
             <CourseCard service={service} />
-
-            <span className="text-sm text-gray-500">
-              Status: {service.status}
-            </span>
-
-            {role === "admin" && service.status === "pending" && (
-              <button
-                onClick={() => handleApprove(service.id)}
-                className="text-green-500 text-sm"
-              >
-                Approve Course
-              </button>
+            
+            {role === "admin" && service.status !== "approved" && (
+              <Button onClick={() => handleApprove(service.id)}>Approve</Button>
             )}
 
-            {role === "admin" && (
-              <button
-                onClick={() => handleDelete(service.id)}
-                className="text-red-500 text-sm"
-              >
-                Delete Course
-              </button>
+            {(role === "admin" || role === "boss") && (
+              <Button onClick={() => handleDelete(service.id)}>Delete</Button>
             )}
           </div>
         ))}

@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+import { useNavigate, Link } from "react-router-dom";
+
+import logo from "../../assets/logo.png";
+
 import { sileo } from "sileo";
 
 export default function LoginPage() {
@@ -8,79 +11,61 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  async function handleLogin() {
-    if (!email || !password) {
+  async function handleLogin(e) {
+    e.preventDefault();
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
       sileo.error({
-        title: "Missing fields",
-        description: "Email and password are required",
+        title: "Login failed",
+        description: error.message,
       });
+
       return;
     }
 
-    try {
-      setLoading(true);
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      sileo.success({
-        title: "Login successful",
-        description: "Welcome back",
-      });
-
-      navigate("/dashboard");
-    } catch (err) {
-      console.error("LOGIN ERROR:", err);
-
-      const message =
-        err?.error_description || err?.message || "Unexpected error";
-
-      sileo.error({
-        title: "Login failed",
-        description: message,
-      });
-    } finally {
-      setLoading(false);
-    }
+    navigate("/dashboard");
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-500 to-purple-600">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-360px flex flex-col gap-4">
-        <h1 className="text-2xl font-bold text-center">AgendaT</h1>
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#7A0C12] via-[#9C1C22] to-[#7A0C12]">
+      <div className="bg-white rounded-xl shadow-xl p-8 w-80 flex flex-col gap-4">
+        <div className="flex flex-col items-center">
+          <img src={logo} className="w-24 mb-3" />
 
-        <input
-          className="border rounded-lg px-3 py-2"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+          <h1 className="text-2xl font-bold text-[#7A0C12]">AgendaT</h1>
+        </div>
 
-        <input
-          type="password"
-          className="border rounded-lg px-3 py-2"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <form onSubmit={handleLogin} className="flex flex-col gap-3">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="border rounded-lg px-3 py-2"
+          />
 
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="bg-black text-white py-2 rounded-lg disabled:opacity-50"
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="border rounded-lg px-3 py-2"
+          />
+
+          <button className="bg-[#7A0C12] text-white rounded-lg py-2 hover:bg-[#9C1C22]">
+            Login
+          </button>
+        </form>
 
         <p className="text-sm text-center">
-          Don't have an account?{" "}
-          <Link to="/register" className="text-blue-600 font-medium">
+          Don't have an account?
+          <Link to="/register" className="text-[#7A0C12] ml-1 font-semibold">
             Register
           </Link>
         </p>

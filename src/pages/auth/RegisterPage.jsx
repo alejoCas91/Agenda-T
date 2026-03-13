@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+import { useNavigate, Link } from "react-router-dom";
+
+import logo from "../../assets/logo.png";
+
 import { sileo } from "sileo";
 
 export default function RegisterPage() {
@@ -39,76 +42,73 @@ export default function RegisterPage() {
 
       const user = data.user;
 
-      /* crear perfil */
-
       await supabase.from("profiles").insert({
         id: user.id,
+        email: email,
         role: "client",
       });
 
-      /* crear cliente */
-
       await supabase.from("clients").insert({
         user_id: user.id,
-        name: name,
-        email: email,
-      });
-
-      sileo.success({
-        title: "Account created",
-        description: "Welcome to AgendaT",
+        name,
+        email,
       });
 
       navigate("/dashboard");
     } catch (err) {
-      const message = err?.message || "Unexpected error";
-
       sileo.error({
         title: "Register failed",
-        description: message,
+        description: err.message,
       });
     }
   }
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-100">
-      <form
-        onSubmit={handleRegister}
-        className="bg-white p-8 rounded-xl shadow flex flex-col gap-4 w-80"
-      >
-        <h1 className="text-2xl font-bold text-center">Register</h1>
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#7A0C12] via-[#9C1C22] to-[#7A0C12]">
+      <div className="bg-white rounded-xl shadow-xl p-8 w-80 flex flex-col gap-4">
+        <div className="flex flex-col items-center">
+          <img src={logo} className="w-24 mb-3" />
 
-        <input
-          type="text"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="border rounded-lg px-3 py-2"
-          required
-        />
+          <h1 className="text-2xl font-bold text-[#7A0C12]">AgendaT</h1>
+        </div>
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="border rounded-lg px-3 py-2"
-          required
-        />
+        <form onSubmit={handleRegister} className="flex flex-col gap-3">
+          <input
+            type="text"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="border rounded-lg px-3 py-2"
+          />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="border rounded-lg px-3 py-2"
-          required
-        />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="border rounded-lg px-3 py-2"
+          />
 
-        <button className="bg-black text-white py-2 rounded-lg">
-          Register
-        </button>
-      </form>
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="border rounded-lg px-3 py-2"
+          />
+
+          <button className="bg-[#7A0C12] text-white rounded-lg py-2 hover:bg-[#9C1C22]">
+            Register
+          </button>
+        </form>
+
+        <p className="text-sm text-center">
+          Already have an account?
+          <Link to="/login" className="text-[#7A0C12] ml-1 font-semibold">
+            Login
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
