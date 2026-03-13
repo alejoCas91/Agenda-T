@@ -1,6 +1,17 @@
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo.png";
 
+function SidebarItem({ to, label, open }) {
+  return (
+    <Link
+      to={to}
+      className="hover:bg-[#9C1C22] rounded px-3 py-2 transition-all"
+    >
+      {open ? label : label.charAt(0)}
+    </Link>
+  );
+}
+
 export default function Sidebar({ open, role }) {
   return (
     <div
@@ -8,8 +19,11 @@ export default function Sidebar({ open, role }) {
       ${open ? "w-64" : "w-16"}
       bg-[#7A0C12] text-white h-screen
       transition-all duration-300
-      flex flex-col`}
+      flex flex-col
+      overflow-hidden
+      `}
     >
+
       <div className="flex items-center gap-3 p-4">
         <img src={logo} className="w-8 rounded-full" />
 
@@ -17,68 +31,31 @@ export default function Sidebar({ open, role }) {
       </div>
 
       <nav className="flex flex-col gap-2 px-3">
-        <Link to="/dashboard" className="hover:bg-[#9C1C22] rounded px-3 py-2">
-          Dashboard
-        </Link>
+        <SidebarItem to="/dashboard" label="Dashboard" open={open} />
 
         {role === "admin" && (
           <>
-            <Link
-              to="/services"
-              className="hover:bg-[#9C1C22] rounded px-3 py-2"
-            >
-              Services
-            </Link>
+            <SidebarItem to="/services" label="Services" open={open} />
 
-            <Link
-              to="/clients"
-              className="hover:bg-[#9C1C22] rounded px-3 py-2"
-            >
-              Clients
-            </Link>
+            <SidebarItem to="/clients" label="Clients" open={open} />
 
-            <Link
-              to="/appointments"
-              className="hover:bg-[#9C1C22] rounded px-3 py-2"
-            >
-              Reservations
-            </Link>
+            <SidebarItem to="/appointments" label="Reservations" open={open} />
           </>
         )}
 
         {role === "boss" && (
           <>
-            <Link
-              to="/services"
-              className="hover:bg-[#9C1C22] rounded px-3 py-2"
-            >
-              Create Course
-            </Link>
+            <SidebarItem to="/services" label="Create Course" open={open} />
 
-            <Link
-              to="/boss-courses"
-              className="hover:bg-[#9C1C22] rounded px-3 py-2"
-            >
-              My Courses
-            </Link>
+            <SidebarItem to="/boss-courses" label="My Courses" open={open} />
           </>
         )}
 
         {role === "client" && (
           <>
-            <Link
-              to="/services"
-              className="hover:bg-[#9C1C22] rounded px-3 py-2"
-            >
-              Courses
-            </Link>
+            <SidebarItem to="/services" label="Courses" open={open} />
 
-            <Link
-              to="/appointments"
-              className="hover:bg-[#9C1C22] rounded px-3 py-2"
-            >
-              My Courses
-            </Link>
+            <SidebarItem to="/appointments" label="My Courses" open={open} />
           </>
         )}
       </nav>
