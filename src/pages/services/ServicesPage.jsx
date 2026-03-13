@@ -1,33 +1,30 @@
 import { useState } from "react";
+
 import PageHeader from "../../ui/components/PageHeader";
 import Button from "../../ui/components/Button";
 import CourseCard from "../../ui/components/CourseCard";
-import ConfirmDialog from "../../ui/components/ConfirmDialog";
+
 import useServices from "../../hooks/useServices";
 import useRole from "../../hooks/useRole";
+
 import { sileo } from "sileo";
 
 export default function ServicesPage() {
-  const {
-    services,
-    createService,
-    deleteService,
-    approveService,
-    loading,
-    error,
-  } = useServices();
+  const { services, createService, deleteService, approveService, loading } =
+    useServices();
 
-  const role = useRole();
+  const { role } = useRole();
 
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("");
 
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
-
   async function handleCreate() {
     if (!name || !duration) {
-      sileo.error("Missing fields");
+      sileo.error({
+        title: "Missing fields",
+        description: "Name and duration are required",
+      });
+
       return;
     }
 
@@ -41,40 +38,65 @@ export default function ServicesPage() {
       setName("");
       setDuration("");
 
-      sileo.success("Service created");
-    } catch {
-      sileo.error("Error creating service");
+      sileo.success({
+        title: "Course created",
+        description: "Waiting for admin approval",
+      });
+    } catch (err) {
+      const message = err?.message || "Unexpected error";
+
+      sileo.error({
+        title: "Create failed",
+        description: message,
+      });
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(id) {
     try {
-      await deleteService(selected);
+      await deleteService(id);
 
-      sileo.success("Service deleted");
+      sileo.success({
+        title: "Course deleted",
+        description: "Service removed",
+      });
     } catch {
-      sileo.error("Cannot delete service with appointments");
+      sileo.error({
+        title: "Delete failed",
+        description: "Service has appointments",
+      });
     }
+  }
 
-    setOpen(false);
-    setSelected(null);
+  async function handleApprove(id) {
+    try {
+      await approveService(id);
+
+      sileo.success({
+        title: "Course approved",
+        description: "Clients can now see this course",
+      });
+    } catch {
+      sileo.error({
+        title: "Approve failed",
+        description: "Unexpected error",
+      });
+    }
   }
 
   if (loading) {
     return <div className="p-6">Loading services...</div>;
   }
 
-  if (error) {
-    return <div className="p-6 text-red-500">Error loading services</div>;
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Services"
-        description="Manage courses/services"
+        description="Manage courses and services"
         action={
-          role === "boss" && <Button onClick={handleCreate}>Create</Button>
+          role === "boss" && (
+            <Button onClick={handleCreate}>Create Course</Button>
+          )
         }
       />
 
@@ -82,14 +104,14 @@ export default function ServicesPage() {
         <div className="flex gap-2">
           <input
             className="border rounded-lg px-3 py-2"
-            placeholder="Service name"
+            placeholder="Course name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
 
           <input
             className="border rounded-lg px-3 py-2"
-            placeholder="Duration"
+            placeholder="Duration (minutes)"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
           />
@@ -97,34 +119,38 @@ export default function ServicesPage() {
       )}
 
       {services.length === 0 && (
-        <div className="text-gray-500">No services yet</div>
+        <div className="text-gray-500">No courses available</div>
       )}
 
       <div className="grid grid-cols-3 gap-6">
         {services.map((service) => (
-          <CourseCard
-            key={service.id}
-            service={service}
-            onDelete={() => {
-              setSelected(service.id);
-              setOpen(true);
-            }}
-            onApprove={() => {
-              approveService(service.id);
-              sileo.success("Service approved");
-            }}
-            showApprove={role === "admin" && service.status === "pending"}
-          />
+          <div key={service.id} className="flex flex-col gap-2">
+            <CourseCard service={service} />
+
+            <span className="text-sm text-gray-500">
+              Status: {service.status}
+            </span>
+
+            {role === "admin" && service.status === "pending" && (
+              <button
+                onClick={() => handleApprove(service.id)}
+                className="text-green-500 text-sm"
+              >
+                Approve Course
+              </button>
+            )}
+
+            {role === "admin" && (
+              <button
+                onClick={() => handleDelete(service.id)}
+                className="text-red-500 text-sm"
+              >
+                Delete Course
+              </button>
+            )}
+          </div>
         ))}
       </div>
-
-      <ConfirmDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        onConfirm={handleDelete}
-        title="Delete service"
-        message="Are you sure you want to delete this service?"
-      />
     </div>
   );
 }

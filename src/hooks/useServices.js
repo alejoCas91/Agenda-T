@@ -1,35 +1,68 @@
 import { useEffect, useState } from "react";
-import { servicesApi } from "../data/apis/servicesApi";
 import { supabase } from "../lib/supabase";
+import { servicesApi } from "../data/apis/servicesApi";
 
 export default function useServices() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function loadServices() {
-      try {
-        const data = await servicesApi.getAll();
-        setServices(data || []);
-      } catch (err) {
-        setError(err);
-      } finally {
-        setLoading(false);
-      }
+    async function init() {
+      const data = await servicesApi.getAll();
+
+      setServices(data || []);
+
+      setLoading(false);
     }
 
-    loadServices();
+    init();
+
+    const channel = supabase
+      .channel("services-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "services",
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setServices((prev) => {
+              const exists = prev.find((s) => s.id === payload.new.id);
+
+              if (exists) return prev;
+
+              return [...prev, payload.new];
+            });
+          }
+
+          if (payload.eventType === "UPDATE") {
+            setServices((prev) =>
+              prev.map((s) => (s.id === payload.new.id ? payload.new : s)),
+            );
+          }
+
+          if (payload.eventType === "DELETE") {
+            setServices((prev) => prev.filter((s) => s.id !== payload.old.id));
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   async function createService(service) {
     const { data: userData } = await supabase.auth.getUser();
+
     const user = userData.user;
 
     const data = await servicesApi.create({
       ...service,
-      boss_id: user.id,
-      status: "pending",
+      user_id: user.id,
     });
 
     setServices((prev) => [...prev, ...data]);
@@ -51,13 +84,11 @@ export default function useServices() {
   }
 
   async function approveService(id) {
-    const { data } = await supabase
-      .from("services")
-      .update({ status: "approved" })
-      .eq("id", id)
-      .select();
+    const data = await servicesApi.approve(id);
 
-    setServices((prev) => prev.map((s) => (s.id === id ? data[0] : s)));
+    setServices((prev) =>
+      prev.map((service) => (service.id === id ? data[0] : service)),
+    );
   }
 
   return {
@@ -66,6 +97,5 @@ export default function useServices() {
     deleteService,
     approveService,
     loading,
-    error,
   };
 }

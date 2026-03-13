@@ -1,43 +1,81 @@
-import PageHeader from "../../ui/components/PageHeader";
-import useAppointments from "../../hooks/useAppointments";
-import useUser from "../../hooks/useUser";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
+import useRole from "../../hooks/useRole";
+import { sileo } from "sileo";
 
 export default function AppointmentsPage() {
-  const { appointments, changeStatus } = useAppointments();
-  const user = useUser();
+  const { role } = useRole();
+
+  const [appointments, setAppointments] = useState([]);
+
+  async function loadAppointments() {
+    const { data } = await supabase.from("appointments").select(`
+          id,
+          date_time,
+          services (
+            id,
+            name
+          ),
+          clients (
+            id,
+            name,
+            email
+          )
+        `);
+
+    setAppointments(data || []);
+  }
+
+  useEffect(() => {
+    async function fetchAppointments() {
+      await loadAppointments();
+    }
+    fetchAppointments();
+  }, []);
+
+  async function handleDelete(id) {
+    try {
+      await supabase.from("appointments").delete().eq("id", id);
+
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
+
+      sileo.success({
+        title: "Reservation removed",
+      });
+    } catch {
+      sileo.error({
+        title: "Delete failed",
+      });
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Appointments"
-        description="Manage scheduled appointments"
-      />
+      <h1 className="text-2xl font-bold">Reservations</h1>
 
-      <div className="grid gap-4">
-        {appointments.map((a) => (
-          <div
-            key={a.id}
-            className="bg-white border rounded-xl p-4 flex flex-col gap-2"
-          >
-            <p className="font-semibold">{a.services?.name}</p>
+      {appointments.length === 0 && <p>No reservations yet</p>}
 
-            <p>Status: {a.status}</p>
+      {appointments.map((app) => (
+        <div
+          key={app.id}
+          className="border rounded-lg p-4 flex justify-between"
+        >
+          <div>
+            <p className="font-semibold">{app.services?.name}</p>
 
-            <p>{new Date(a.date_time).toLocaleString()}</p>
-
-            {user.role === "admin" && (
-              <div className="flex gap-2">
-                <button onClick={() => changeStatus(a.id, "completed")}>
-                  Complete
-                </button>
-
-                <button onClick={() => changeStatus(a.id, "cancelled")}>
-                  Cancel
-                </button>
-              </div>
-            )}
+            <p className="text-sm text-gray-500">{app.clients?.name}</p>
           </div>
-        ))}
-      </div>
+
+          {(role === "boss" || role === "admin") && (
+            <button
+              onClick={() => handleDelete(app.id)}
+              className="text-red-500"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

@@ -6,8 +6,9 @@ export default function useRole() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchRole() {
+    async function loadRole() {
       const { data: userData } = await supabase.auth.getUser();
+
       const user = userData.user;
 
       if (!user) {
@@ -22,11 +23,15 @@ export default function useRole() {
         .single();
 
       setRole(data?.role || "client");
+
       setLoading(false);
     }
 
-    fetchRole();
+    loadRole();
   }, []);
 
-  return { role, loading };
+  return {
+    role,
+    loading,
+  };
 }

@@ -1,69 +1,54 @@
 import { useEffect, useState } from "react";
-import { appointmentsApi } from "../data/apis/appointmentsApi";
 import { supabase } from "../lib/supabase";
+import { appointmentsApi } from "../data/apis/appointmentsApi";
 
 export default function useAppointments() {
   const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchAppointments() {
+    async function init() {
       const data = await appointmentsApi.getAll();
+
       setAppointments(data || []);
+
+      setLoading(false);
     }
 
-    fetchAppointments();
-
-    const channel = supabase
-      .channel("appointments-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "appointments" },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setAppointments((prev) => [...prev, payload.new]);
-          }
-
-          if (payload.eventType === "UPDATE") {
-            setAppointments((prev) =>
-              prev.map((a) => (a.id === payload.new.id ? payload.new : a)),
-            );
-          }
-
-          if (payload.eventType === "DELETE") {
-            setAppointments((prev) =>
-              prev.filter((a) => a.id !== payload.old.id),
-            );
-          }
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    init();
   }, []);
 
-  async function createAppointment(payload) {
-    const data = await appointmentsApi.create(payload);
+  async function createAppointment(serviceId) {
+    const { data: userData } = await supabase.auth.getUser();
+
+    const user = userData.user;
+
+    const { data: client } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    const data = await appointmentsApi.create({
+      client_id: client.id,
+      service_id: serviceId,
+      date_time: new Date(),
+      status: "scheduled",
+    });
 
     setAppointments((prev) => [...prev, ...data]);
   }
 
-  async function changeStatus(id, status) {
-    const previous = appointments;
+  async function cancelAppointment(id) {
+    await appointmentsApi.remove(id);
 
-    /* opt upd */
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status } : a)),
-    );
-
-    try {
-      await appointmentsApi.updateStatus(id, status);
-    } catch (error) {
-      console.error(error);
-      setAppointments(previous);
-    }
+    setAppointments((prev) => prev.filter((a) => a.id !== id));
   }
 
-  return { appointments, createAppointment, changeStatus };
+  return {
+    appointments,
+    createAppointment,
+    cancelAppointment,
+    loading,
+  };
 }

@@ -1,36 +1,22 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import CourseCard from "../../ui/components/CourseCard";
+import useServices from "../../hooks/useServices";
 
 export default function BossDashboard() {
-  const [services, setServices] = useState([]);
+  const { services, loading } = useServices();
 
-  useEffect(() => {
-    async function load() {
-      const { data: userData } = await supabase.auth.getUser();
-
-      const user = userData.user;
-
-      const { data } = await supabase
-        .from("services")
-        .select("*")
-        .eq("boss_id", user.id);
-
-      setServices(data);
-    }
-
-    load();
-  }, []);
+  if (loading) {
+    return <div className="p-6">Loading...</div>;
+  }
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-semibold">My Services</h2>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold">My Courses</h1>
 
-      {services.map((service) => (
-        <div key={service.id} className="border p-4 mt-3">
-          <p>{service.name}</p>
-          <p>Status: {service.status}</p>
-        </div>
-      ))}
+      <div className="grid grid-cols-3 gap-6">
+        {services.map((service) => (
+          <CourseCard key={service.id} service={service} />
+        ))}
+      </div>
     </div>
   );
 }

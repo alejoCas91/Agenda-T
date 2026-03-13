@@ -4,12 +4,26 @@ export const appointmentsApi = {
   async getAll() {
     const { data, error } = await supabase
       .from("appointments")
-      .select(`*, services(name)`);
+      .select(
+        `
+        *,
+        services (
+          id,
+          name
+        ),
+        clients (
+          id,
+          name,
+          email
+        )
+      `,
+      )
+      .order("date_time", { ascending: false });
 
-    console.log("appointments:", data);
-    console.log("error:", error);
-
-    if (error) throw error;
+    if (error) {
+      console.log(error);
+      throw error;
+    }
 
     return data;
   },
@@ -17,25 +31,23 @@ export const appointmentsApi = {
   async create(appointment) {
     const { data, error } = await supabase
       .from("appointments")
-      .insert(appointment)
+      .insert([appointment])
       .select();
 
-    console.log("create appointment:", data, error);
-
-    if (error) throw error;
+    if (error) {
+      console.log(error);
+      throw error;
+    }
 
     return data;
   },
 
-  async updateStatus(id, status) {
-    const { data, error } = await supabase
-      .from("appointments")
-      .update({ status })
-      .eq("id", id)
-      .select();
+  async remove(id) {
+    const { error } = await supabase.from("appointments").delete().eq("id", id);
 
-    if (error) throw error;
-
-    return data;
+    if (error) {
+      console.log(error);
+      throw error;
+    }
   },
 };
