@@ -5,15 +5,15 @@ export default function AppointmentCard() {
   return (
     <div className="bg-white border rounded-xl p-4 shadow-sm flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">ajsndhajsd</h3>
+        <h3 className="font-semibold">Title</h3>
         <StatusBadge status="scheduled" />
       </div>
 
-      <p className="text-sm text-gray-500">eurbiasd ajsndh</p>
+      <p className="text-sm text-gray-500">Description</p>
 
       <div className="flex items-center justify-between text-sm text-gray-600">
         <span>00:00</span>
-        <span>ajs</span>
+        <span>Location</span>
       </div>
 
       <div className="flex gap-2">

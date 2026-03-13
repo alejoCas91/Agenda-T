@@ -172,7 +172,7 @@ export default function ServicesPage() {
         {services.map((service) => (
           <div key={service.id} className="flex flex-col gap-2">
             <CourseCard service={service} />
-            
+
             {role === "admin" && service.status !== "approved" && (
               <Button onClick={() => handleApprove(service.id)}>Approve</Button>
             )}

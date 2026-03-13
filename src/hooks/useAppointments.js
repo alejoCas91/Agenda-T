@@ -43,7 +43,6 @@ export default function useAppointments() {
         prev.map((a) => (a.id === optimistic.id ? data[0] : a)),
       );
     } catch (err) {
-
       setAppointments((prev) => prev.filter((a) => a.id !== optimistic.id));
 
       throw err;

@@ -26,11 +26,7 @@ export default function Topbar({ toggleSidebar }) {
 
   return (
     <div className="flex justify-between items-center p-4 border-b bg-white">
-      {/* botón sidebar */}
-
       <button onClick={toggleSidebar}>☰</button>
-
-      {/* menú usuario */}
 
       <div className="relative">
         <button onClick={() => setMenu(!menu)}>☰</button>

@@ -9,7 +9,7 @@ export default function StatusBadge({ status }) {
     <span
       className={`text-xs px-2 py-1 rounded ${styles[status] || "bg-gray-100 text-gray-700"}`}
     >
-      ajsd
+    asd
     </span>
   );
 }
