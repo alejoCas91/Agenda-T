@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 import CourseCard from "../../ui/components/CourseCard";
@@ -6,7 +6,6 @@ import Button from "../../ui/components/Button";
 import PageHeader from "../../ui/components/PageHeader";
 
 import useRole from "../../hooks/useRole";
-
 import { sileo } from "sileo";
 
 export default function ServicesPage() {
@@ -34,7 +33,6 @@ export default function ServicesPage() {
         sileo.error({
           title: "Error loading courses",
         });
-
         return;
       }
 
@@ -43,15 +41,49 @@ export default function ServicesPage() {
     }
 
     loadServices();
+
+    const channel = supabase
+      .channel("services-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "services",
+        },
+        (payload) => {
+          setServices((prev) => {
+            if (payload.eventType === "INSERT") {
+              return [...prev, payload.new];
+            }
+
+            if (payload.eventType === "UPDATE") {
+              return prev.map((s) =>
+                s.id === payload.new.id ? payload.new : s,
+              );
+            }
+
+            if (payload.eventType === "DELETE") {
+              return prev.filter((s) => s.id !== payload.old.id);
+            }
+
+            return prev;
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [role]);
 
   async function handleCreate() {
     try {
       const { data: userData } = await supabase.auth.getUser();
-
       const user = userData.user;
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("services")
         .insert({
           name,
@@ -64,8 +96,6 @@ export default function ServicesPage() {
         .select();
 
       if (error) throw error;
-
-      setServices((prev) => [...prev, data[0]]);
 
       setName("");
       setDuration("");
@@ -84,40 +114,34 @@ export default function ServicesPage() {
   }
 
   async function handleApprove(id) {
-    try {
-      const { error } = await supabase
-        .from("services")
-        .update({
-          status: "approved",
-        })
-        .eq("id", id);
+    const oldServices = [...services];
 
-      if (error) throw error;
+    setServices((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: "approved" } : s)),
+    );
 
-      setServices((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, status: "approved" } : s)),
-      );
+    const { error } = await supabase
+      .from("services")
+      .update({ status: "approved" })
+      .eq("id", id);
 
-      sileo.success({
-        title: "Course approved",
-      });
-    } catch {
+    if (error) {
+      setServices(oldServices);
+
       sileo.error({
         title: "Approval failed",
+      });
+    } else {
+      sileo.success({
+        title: "Course approved",
       });
     }
   }
 
   async function handleDelete(id) {
-    try {
-      await supabase.from("services").delete().eq("id", id);
+    const { error } = await supabase.from("services").delete().eq("id", id);
 
-      setServices((prev) => prev.filter((s) => s.id !== id));
-
-      sileo.success({
-        title: "Course deleted",
-      });
-    } catch {
+    if (error) {
       sileo.error({
         title: "Delete failed",
       });
@@ -131,6 +155,8 @@ export default function ServicesPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Courses" description="Manage available courses" />
+
+      {/* CREATE COURSE */}
 
       {role === "boss" && (
         <div className="border rounded-xl p-4 flex flex-col gap-3 max-w-md">
