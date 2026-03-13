@@ -1,51 +1,24 @@
-import { supabase } from "../../lib/supabase";
-import Button from "./Button";
+import useAppointments from "../../hooks/useAppointments";
 import useRole from "../../hooks/useRole";
 import { sileo } from "sileo";
 
 export default function CourseCard({ service }) {
   const { role } = useRole();
 
+  const { createAppointment } = useAppointments();
+
   if (!service) return null;
 
   async function handleBook() {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-
-      const user = userData.user;
-
-      const { data: client } = await supabase
-        .from("clients")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!client) {
-        throw new Error("Client not found");
-      }
-
-      const { error } = await supabase
-        .from("appointments")
-        .insert({
-          client_id: client.id,
-          service_id: service.id,
-          user_id: user.id,
-          date_time: new Date(),
-          status: "scheduled",
-        })
-        .select();
-
-      if (error) throw error;
+      await createAppointment(service);
 
       sileo.success({
         title: "Course reserved",
-        description: "You are now enrolled",
       });
     } catch (err) {
-      console.log(err);
-
       sileo.error({
-        title: "Booking Failed",
+        title: "Booking failed",
         description: err.message,
       });
     }
@@ -64,7 +37,12 @@ export default function CourseCard({ service }) {
       </p>
 
       {role === "client" && service.status === "approved" && (
-        <Button onClick={handleBook}>Reserve Course</Button>
+        <button
+          onClick={handleBook}
+          className="bg-black text-white px-3 py-1 rounded"
+        >
+          Reserve Course
+        </button>
       )}
     </div>
   );

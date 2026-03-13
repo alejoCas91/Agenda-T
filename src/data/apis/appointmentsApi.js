@@ -1,16 +1,25 @@
 import useAppointments from "../../hooks/useAppointments";
 import useRole from "../../hooks/useRole";
 import { supabase } from "../../lib/supabase";
+import ConfirmDialog from "../../ui/components/ConfirmDialog";
+import { useState } from "react";
 import { sileo } from "sileo";
 
 export default function AppointmentsPage() {
   const { appointments, loading } = useAppointments();
-
   const { role } = useRole();
 
-  async function handleDelete(id) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+
+  function handleAskDelete(id) {
+    setSelected(id);
+    setOpen(true);
+  }
+
+  async function handleDelete() {
     try {
-      await supabase.from("appointments").delete().eq("id", id);
+      await supabase.from("appointments").delete().eq("id", selected);
 
       sileo.success({
         title: "Reservation removed",
@@ -20,6 +29,8 @@ export default function AppointmentsPage() {
         title: "Failed to remove reservation",
       });
     }
+
+    setOpen(false);
   }
 
   if (loading) {
@@ -45,7 +56,7 @@ export default function AppointmentsPage() {
 
           {(role === "boss" || role === "admin") && (
             <button
-              onClick={() => handleDelete(app.id)}
+              onClick={() => handleAskDelete(app.id)}
               className="text-red-500"
             >
               Remove
@@ -53,6 +64,14 @@ export default function AppointmentsPage() {
           )}
         </div>
       ))}
+
+      <ConfirmDialog
+        open={open}
+        onConfirm={handleDelete}
+        onCancel={() => setOpen(false)}
+        title="Delete reservation?"
+        description="This action cannot be undone"
+      />
     </div>
   );
 }

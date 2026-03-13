@@ -1,71 +1,57 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function useAppointments() {
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  async function loadAppointments() {
-    const { data } = await supabase.from("appointments").select(`
-          id,
-          date_time,
-          services (
-            id,
-            name
-          ),
-          clients (
-            id,
-            name,
-            email
-          )
-        `);
+  async function createAppointment(service) {
+    const { data: userData } = await supabase.auth.getUser();
 
-    setAppointments(data || []);
-    setLoading(false);
-  }
+    const user = userData.user;
 
-  useEffect(() => {
-    async function fetchAppointments() {
-      await loadAppointments();
-    }
-    fetchAppointments();
+    const { data: client } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
 
-    const channel = supabase
-      .channel("appointments-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "appointments",
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setAppointments((prev) => {
-              const exists = prev.find((a) => a.id === payload.new.id);
-
-              if (exists) return prev;
-
-              return [...prev, payload.new];
-            });
-          }
-
-          if (payload.eventType === "DELETE") {
-            setAppointments((prev) =>
-              prev.filter((a) => a.id !== payload.old.id),
-            );
-          }
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+    const optimistic = {
+      id: crypto.randomUUID(),
+      service_id: service.id,
+      client_id: client.id,
+      services: service,
+      status: "scheduled",
     };
-  }, []);
+
+    setAppointments((prev) => [...prev, optimistic]);
+
+    try {
+      const { data, error } = await supabase
+        .from("appointments")
+        .insert({
+          client_id: client.id,
+          service_id: service.id,
+          user_id: user.id,
+          date_time: new Date(),
+          status: "scheduled",
+        })
+        .select();
+
+      if (error) throw error;
+
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === optimistic.id ? data[0] : a)),
+      );
+    } catch (err) {
+
+      setAppointments((prev) => prev.filter((a) => a.id !== optimistic.id));
+
+      throw err;
+    }
+  }
 
   return {
     appointments,
-    loading,
+    createAppointment,
   };
 }

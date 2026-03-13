@@ -1,110 +1,63 @@
-import { useState } from "react";
-import PageHeader from "../../ui/components/PageHeader";
-import useClients from "../../hooks/useClients";
-import ConfirmDialog from "../../ui/components/ConfirmDialog";
-
-import { sileo } from "sileo";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 export default function ClientsPage() {
-  const { clients, createClient, deleteClient } = useClients();
+  const [clients, setClients] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  async function loadClients() {
+    const { data } = await supabase.from("clients").select("*");
 
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
-
-  async function handleCreate() {
-    try {
-      await createClient({
-        name,
-        phone,
-        user_id: "00000000-0000-0000-0000-000000000000",
-      });
-
-      sileo.success("Client created");
-    } catch {
-      sileo.error("Error creating client");
-    }
+    setClients(data || []);
+    setLoading(false);
   }
 
-  async function handleDelete() {
-    try {
-      await deleteClient(selected);
-
-      sileo.success("Client deleted");
-    } catch {
-      sileo.error("Cannot delete client with appointments");
+  useEffect(() => {
+    async function fetchClients() {
+      await loadClients();
     }
+    fetchClients();
+  }, []);
 
-    setOpen(false);
-    setSelected(null);
+  const filtered = clients.filter(
+    (client) =>
+      client.name?.toLowerCase().includes(search.toLowerCase()) ||
+      client.email?.toLowerCase().includes(search.toLowerCase()) ||
+      client.phone?.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  if (loading) {
+    return <div className="p-6">Loading clients...</div>;
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader title="Clients" description="Manage your business clients" />
-      <ConfirmDialog
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          setSelected(null);
-        }}
-        onConfirm={handleDelete}
-        title="Delete Client"
-        message="Sure?"
+    <div className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold">Clients</h1>
+
+      <input
+        type="text"
+        placeholder="Search by name, email or phone"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="border rounded-lg px-3 py-2 w-80"
       />
 
-      <div className="bg-white border rounded-xl p-6 shadow-sm flex gap-3">
-        <input
-          className="border rounded-lg px-3 py-2 flex-1"
-          placeholder="Client name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+      {filtered.length === 0 && <p>No clients found</p>}
 
-        <input
-          className="border rounded-lg px-3 py-2 flex-1"
-          placeholder="Phone"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
-
-        <button
-          className="bg-black text-white px-4 rounded-lg"
-          onClick={handleCreate}
-        >
-          Add Client
-        </button>
-      </div>
-
-      <div className="grid grid-cols-3 gap-6">
-        {clients.map((c) => (
+      <div className="flex flex-col gap-3">
+        {filtered.map((client) => (
           <div
-            key={c.id}
-            className="bg-white border rounded-xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition"
+            key={client.id}
+            className="border rounded-lg p-4 flex justify-between"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-semibold">
-                {c.name?.charAt(0)}
-              </div>
+            <div>
+              <p className="font-semibold">{client.name}</p>
 
-              <div className="flex flex-col">
-                <span className="font-semibold">{c.name}</span>
+              <p className="text-sm text-gray-500">{client.email}</p>
 
-                <span className="text-sm text-gray-500">{c.phone}</span>
-              </div>
+              <p className="text-sm text-gray-500">{client.phone}</p>
             </div>
-
-            <button
-              className="text-red-500 hover:text-red-700"
-              onClick={() => {
-                setSelected(c.id);
-                setOpen(true);
-              }}
-            >
-              Delete
-            </button>
           </div>
         ))}
       </div>
