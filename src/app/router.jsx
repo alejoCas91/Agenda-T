@@ -12,6 +12,8 @@ import ServicesPage from "../pages/services/ServicesPage";
 import AppointmentsPage from "../pages/appointments/AppointmentsPage";
 import ClientsPage from "../pages/clients/ClientsPage";
 
+import BossCoursesPage from "../pages/boss/BossCoursesPage";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -29,9 +31,14 @@ export default function AppRouter() {
           }
         >
           <Route path="/dashboard" element={<DashboardPage />} />
+
           <Route path="/services" element={<ServicesPage />} />
+
           <Route path="/appointments" element={<AppointmentsPage />} />
+
           <Route path="/clients" element={<ClientsPage />} />
+
+          <Route path="/boss-courses" element={<BossCoursesPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

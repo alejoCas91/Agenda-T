@@ -18,9 +18,9 @@ export default function Sidebar({ open, role }) {
 
         {role === "boss" && (
           <>
-            <Link to="/services">{open ? "Create" : "S"}</Link>
+            <Link to="/services">{open ? "Create Course" : "C"}</Link>
 
-            <Link to="/appointments">{open ? "Clients" : "C"}</Link>
+            <Link to="/boss-courses">{open ? "My Courses" : "M"}</Link>
           </>
         )}
 

@@ -1,53 +1,58 @@
+import useAppointments from "../../hooks/useAppointments";
+import useRole from "../../hooks/useRole";
 import { supabase } from "../../lib/supabase";
+import { sileo } from "sileo";
 
-export const appointmentsApi = {
-  async getAll() {
-    const { data, error } = await supabase
-      .from("appointments")
-      .select(
-        `
-        *,
-        services (
-          id,
-          name
-        ),
-        clients (
-          id,
-          name,
-          email
-        )
-      `,
-      )
-      .order("date_time", { ascending: false });
+export default function AppointmentsPage() {
+  const { appointments, loading } = useAppointments();
 
-    if (error) {
-      console.log(error);
-      throw error;
+  const { role } = useRole();
+
+  async function handleDelete(id) {
+    try {
+      await supabase.from("appointments").delete().eq("id", id);
+
+      sileo.success({
+        title: "Reservation removed",
+      });
+    } catch {
+      sileo.error({
+        title: "Failed to remove reservation",
+      });
     }
+  }
 
-    return data;
-  },
+  if (loading) {
+    return <div className="p-6">Loading reservations...</div>;
+  }
 
-  async create(appointment) {
-    const { data, error } = await supabase
-      .from("appointments")
-      .insert([appointment])
-      .select();
+  return (
+    <div className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold">Reservations</h1>
 
-    if (error) {
-      console.log(error);
-      throw error;
-    }
+      {appointments.length === 0 && <p>No reservations yet</p>}
 
-    return data;
-  },
+      {appointments.map((app) => (
+        <div
+          key={app.id}
+          className="border rounded-lg p-4 flex justify-between"
+        >
+          <div>
+            <p className="font-semibold">{app.services?.name}</p>
 
-  async remove(id) {
-    const { error } = await supabase.from("appointments").delete().eq("id", id);
+            <p className="text-sm text-gray-500">{app.clients?.name}</p>
+          </div>
 
-    if (error) {
-      console.log(error);
-      throw error;
-    }
-  },
-};
+          {(role === "boss" || role === "admin") && (
+            <button
+              onClick={() => handleDelete(app.id)}
+              className="text-red-500"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
